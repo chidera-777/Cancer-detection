@@ -1,10 +1,15 @@
 import numpy as np
 import copy, math
 
+def accuracy_score(y, y_pred):
+    res = np.mean(y_pred == y) * 100
+    print(f"Accuracy Score: {res}")
+    
+
 class LogisticRegression:
     
-    # def __init__(self) -> None:
-    #     pass
+    def __init__(self):
+        pass
     
     def sigmoid(self, z):
         """
@@ -16,11 +21,12 @@ class LogisticRegression:
         Returns:
             g: sigmoid(z)
         """
-        g = 1.0/(1.0 + np.exp(-z))
+        z = np.clip( z, -500, 500)
+        g = 1.0/(1.0+np.exp(-z))
         return g
     
     
-    def compute_cost(self, X, y, w, b, lambda_=1):
+    def compute_cost(self, X, y, w, b, lambda_=1, safe=False):
         """
         Function for the computing the cost function of the model
         
@@ -36,13 +42,15 @@ class LogisticRegression:
         """
         
         m, n = X.shape
-        cost = 0
+        cost = 0.0
         reg_cost = 0
+        epsilon = 1e-10
         
         for i in range(m):
-            z = np.dot(X[i], w) + b
+            z = np.dot(X.iloc[i], w) + b 
             func_wb = self.sigmoid(z)
-            cost += (-y[i] * np.log(func_wb)) - ((1 - y[i]) * np.log(1 - func_wb))
+            cost += -np.sum(y.iloc[i] * np.log(np.clip(func_wb, epsilon, 1 - epsilon)) + (1 - y.iloc[i]) * np.log(np.clip(1 - func_wb, epsilon, 1 - epsilon)))
+                
         cost = cost/m
         
         for j in range(n):
@@ -52,9 +60,7 @@ class LogisticRegression:
         total_cost = cost + reg_cost
         
         return total_cost
-            
-            
-    
+
     def compute_gradient(self, X, y, w, b, lambda_):
         """
         Function to compute the gradient cost of the model
@@ -77,11 +83,11 @@ class LogisticRegression:
         cost_b = 0.0
         
         for i in range(m):
-            func_wb = self.sigmoid(np.dot(X[i], w) + b)
-            cost_b += func_wb - y[i]
+            func_wb = self.sigmoid(np.dot(X.iloc[i], w) + b)
+            cost_b += func_wb - y.iloc[i]
         
             for j in range(n):
-                cost_w[j] += (func_wb - y[i]) * X[i, j]
+                cost_w[j] += (func_wb - y.iloc[i]) * X.iloc[i, j]
                 
         dj_db = cost_b/m
         dj_dw = cost_w/m
@@ -112,10 +118,10 @@ class LogisticRegression:
             w = w - (alpha * dj_dw)
             b = b - (alpha * dj_db)
             
-            if i<100000:
+            if i<10000:
                 J_history.append(self.compute_cost(X, y, w, b, lambda_))
             
-            if i % math.ceil(num / 10) == 0 and num[-1]:
+            if i % math.ceil(num / 10) == 0:
                 print(f"Number of Iterations: {i}, Cost {J_history[-1]}")
                 
         return w, b, J_history
@@ -128,21 +134,18 @@ class LogisticRegression:
             X ((m, n), ndarray): Training examples with features n
             y ((m), ndarray): Target Prediction
         """
+        
         if X.ndim == 1:
             w_in = 0.1
         else:
             w_in = np.full((X.shape[1]), 0.1)
         b_in = 0.1
-        alpha = 0.01
+        alpha = 6e-5
         lambda_ = 1
-        iteration = 10000
-        global weight
-        global bias
-        weight, bias, Cost_history = self.gradient_descient(iteration, X, y, w_in, b_in, alpha, lambda_)
-        print(f"Weight: {weight}, Bias: {bias}")
-        print(f"Cost History: {Cost_history}")
-        # return weight, bias
-        
+        iteration = 1000
+        self.weight, self.bias, Cost_history = self.gradient_descient(iteration, X, y, w_in, b_in, alpha, lambda_)
+        print(f"Weight: {self.weight}, Bias: {self.bias}")
+      
     def predict(self, X):
         """
         A Function to predict the target output with the trained model
@@ -159,9 +162,9 @@ class LogisticRegression:
         for i in range(m):
             z = 0
             for j in range(n):
-                z += np.dot(X[i, j], weight[j])
+                z += np.dot(X.iloc[i, j], self.weight[j])
                 
-            z += bias
+            z += self.bias
             
             func_wb = self.sigmoid(z)
             if func_wb >= 0.5:
