@@ -1,5 +1,7 @@
 import numpy as np
-import copy, math
+import copy, math 
+from collections import deque
+
 
 def accuracy_score(y, y_pred):
     res = np.mean(y_pred == y) * 100
@@ -108,7 +110,7 @@ class LogisticRegression:
             w (ndrray): weight parameter for the model
             b (scalar) : bias parameter for the model
         """
-        J_history = []
+        J_history = deque()
         w = copy.deepcopy(w_in)
         b = b_in
         
@@ -122,7 +124,7 @@ class LogisticRegression:
                 J_history.append(self.compute_cost(X, y, w, b, lambda_))
             
             if i % math.ceil(num / 10) == 0:
-                print(f"Number of Iterations: {i}, Cost {J_history[-1]}")
+                print(f"Number of Iterations: {i}, Cost {J_history.pop()}")
                 
         return w, b, J_history
     
